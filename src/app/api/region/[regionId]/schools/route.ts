@@ -26,10 +26,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ regionId
   // Add debug logging
   console.log("RegionId received:", regionId);
   
-  const schools = await School.find({ region: regionId });
+  const schools = await School.find({ region: regionId }).lean();
   console.log("Schools found:", schools.length);
   
-  return NextResponse.json({ schools }, { status: 200 });
+  // Transform the data to match frontend types
+  const transformedSchools = schools.map((school: any) => ({
+    id: school._id.toString(),
+    name: school.name,
+    address: school.address,
+    region: school.region.toString(),
+    createdAt: school.createdAt,
+    updatedAt: school.updatedAt
+  }));
+  
+  return NextResponse.json({ schools: transformedSchools }, { status: 200 });
 }
 
 // POST /api/region/[regionId]/schools (Admin only)

@@ -7,6 +7,9 @@ export interface IDevice extends Document {
   location: mongoose.Types.ObjectId; // Reference to Location
   status: "active" | "inactive";
   school: mongoose.Types.ObjectId; // The school where the device belongs
+  serialNumber?: string; // Optional serial number
+  purchaseDate?: Date; // Optional purchase date
+  warrantyExpiry?: Date; // Optional warranty expiry date
 }
 
 // 2️⃣ Define the schema (how MongoDB will store it)
@@ -24,6 +27,11 @@ const deviceSchema = new Schema<IDevice>({
     default: "active",
   },
   school: { type: Schema.Types.ObjectId, ref: "School", required: true },
+  serialNumber: { type: String },
+  purchaseDate: { type: Date },
+  warrantyExpiry: { type: Date }
+}, {
+  timestamps: true // Automatically adds createdAt and updatedAt
 });
 
 // 3️⃣ Export model so we can use it in APIs

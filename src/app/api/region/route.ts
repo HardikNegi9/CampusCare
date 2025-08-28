@@ -20,8 +20,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: "Invalid token" }, { status: 401 });
   }
 
-  const regions = await Region.find();
-  return NextResponse.json({ regions }, { status: 200 });
+  const regions = await Region.find().lean();
+  
+  // Transform the data to match frontend types
+  const transformedRegions = regions.map((region: any) => ({
+    id: region._id.toString(),
+    name: region.name,
+    description: region.description,
+    createdAt: region.createdAt,
+    updatedAt: region.updatedAt
+  }));
+  
+  return NextResponse.json({ regions: transformedRegions }, { status: 200 });
 }
 
 // POST /api/region -> Create region (Admin only)
