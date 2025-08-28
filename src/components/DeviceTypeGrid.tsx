@@ -90,7 +90,7 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
       bgColor: 'bg-blue-50',
       darkBgColor: 'dark:bg-blue-950',
       title: 'Cameras',
-      description: 'Camera devices',
+      description: 'Computer devices',
       locations: getLocationsForDeviceType('camera')
     }
   ];
