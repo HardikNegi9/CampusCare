@@ -65,7 +65,7 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
   const deviceTypes = [
     {
       type: 'cctv',
-      icon: Monitor,
+      icon: Camera,
       color: 'text-green-500',
       bgColor: 'bg-green-50',
       darkBgColor: 'dark:bg-green-950',
@@ -84,8 +84,8 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
       locations: getLocationsForDeviceType('printer')
     },
     {
-      type: 'camera',
-      icon: Camera,
+      type: 'Computer Lab',
+      icon: Monitor,
       color: 'text-blue-500',
       bgColor: 'bg-blue-50',
       darkBgColor: 'dark:bg-blue-950',
