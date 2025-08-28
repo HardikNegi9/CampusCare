@@ -65,7 +65,7 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
   const deviceTypes = [
     {
       type: 'cctv',
-      icon: Camera,
+      icon: Monitor,
       color: 'text-green-500',
       bgColor: 'bg-green-50',
       darkBgColor: 'dark:bg-green-950',
