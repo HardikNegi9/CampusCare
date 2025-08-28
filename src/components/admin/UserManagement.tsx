@@ -61,7 +61,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     email: '',
     password: '',
     role: 'faculty' as 'admin' | 'engineer' | 'faculty',
-    affiliatedSchool: ''
+    affiliatedSchool: 'none'
   });
 
   const queryClient = useQueryClient();
@@ -188,7 +188,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       email: '',
       password: '',
       role: 'faculty',
-      affiliatedSchool: ''
+      affiliatedSchool: 'none'
     });
   };
 
@@ -197,7 +197,14 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       toast.error('Please fill in all required fields');
       return;
     }
-    createUserMutation.mutate(formData);
+    
+    // Convert 'none' to empty string for API
+    const userData = {
+      ...formData,
+      affiliatedSchool: formData.affiliatedSchool === 'none' ? '' : formData.affiliatedSchool
+    };
+    
+    createUserMutation.mutate(userData);
   };
 
   const handleEditUser = (user: User) => {
@@ -207,7 +214,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       email: user.email,
       password: '', // Don't pre-fill password
       role: user.role,
-      affiliatedSchool: user.affiliatedSchool || ''
+      affiliatedSchool: user.affiliatedSchool || 'none'
     });
     setIsEditDialogOpen(true);
   };
@@ -219,7 +226,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       username: formData.username,
       email: formData.email,
       role: formData.role,
-      affiliatedSchool: formData.affiliatedSchool || undefined
+      affiliatedSchool: formData.affiliatedSchool === 'none' ? '' : formData.affiliatedSchool || undefined
     };
 
     // Only include password if it's provided
@@ -326,7 +333,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                         <SelectValue placeholder="Select school (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No affiliation</SelectItem>
+                        <SelectItem value="none">No affiliation</SelectItem>
                         {schools?.map((school: School) => (
                           <SelectItem key={school.id} value={school.id}>
                             {school.name}

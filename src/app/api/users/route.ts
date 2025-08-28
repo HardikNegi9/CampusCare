@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.id);
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ message: 'Access denied. Admin role required.' }, { status: 403 });
     }
@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
     // Fetch all users with populated school data
     const users = await User.find({})
       .populate('affiliatedSchool', 'name')
-      .select('-password')
+      .select('-passwordHash')
       .sort({ createdAt: -1 });
 
     // Transform the data
     const transformedUsers = users.map(user => ({
       id: user._id.toString(),
-      username: user.username,
+      username: user.name,
       email: user.email,
       role: user.role,
       affiliatedSchool: user.affiliatedSchool?._id?.toString(),
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is admin
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.id);
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ message: 'Access denied. Admin role required.' }, { status: 403 });
     }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
+      $or: [{ email }, { name: username }]
     });
 
     if (existingUser) {
@@ -105,9 +105,9 @@ export async function POST(request: NextRequest) {
 
     // Create user data
     const userData: any = {
-      username,
+      name: username,
       email,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       role
     };
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Return user data without password
     const responseUser = {
       id: newUser._id.toString(),
-      username: newUser.username,
+      username: newUser.name,
       email: newUser.email,
       role: newUser.role,
       affiliatedSchool: newUser.affiliatedSchool?._id?.toString(),

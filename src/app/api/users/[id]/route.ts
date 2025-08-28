@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user is admin
-    const currentUser = await User.findById(decoded.userId);
+    const currentUser = await User.findById(decoded.id);
     if (!currentUser || currentUser.role !== 'admin') {
       return NextResponse.json({ message: 'Access denied. Admin role required.' }, { status: 403 });
     }
@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const updates: any = {};
 
     // Update basic fields
-    if (updateData.username) updates.username = updateData.username;
+    if (updateData.username) updates.name = updateData.username;
     if (updateData.email) updates.email = updateData.email;
     if (updateData.role) updates.role = updateData.role;
     
@@ -57,22 +57,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Handle password update
     if (updateData.password) {
-      updates.password = await bcrypt.hash(updateData.password, 12);
+      updates.passwordHash = await bcrypt.hash(updateData.password, 12);
     }
 
     // Check for duplicate username/email (excluding current user)
-    if (updates.username || updates.email) {
+    if (updates.name || updates.email) {
       const duplicateQuery: any = { _id: { $ne: id } };
       const orConditions = [];
       
-      if (updates.username) orConditions.push({ username: updates.username });
+      if (updates.name) orConditions.push({ name: updates.name });
       if (updates.email) orConditions.push({ email: updates.email });
       
       duplicateQuery.$or = orConditions;
       
       const duplicateUser = await User.findOne(duplicateQuery);
       if (duplicateUser) {
-        const field = duplicateUser.username === updates.username ? 'Username' : 'Email';
+        const field = duplicateUser.name === updates.name ? 'Username' : 'Email';
         return NextResponse.json({ message: `${field} already exists` }, { status: 400 });
       }
     }
@@ -91,7 +91,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Return updated user data without password
     const responseUser = {
       id: updatedUser._id.toString(),
-      username: updatedUser.username,
+      username: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
       affiliatedSchool: updatedUser.affiliatedSchool?._id?.toString(),
@@ -132,7 +132,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user is admin
-    const currentUser = await User.findById(decoded.userId);
+    const currentUser = await User.findById(decoded.id);
     if (!currentUser || currentUser.role !== 'admin') {
       return NextResponse.json({ message: 'Access denied. Admin role required.' }, { status: 403 });
     }
