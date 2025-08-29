@@ -42,7 +42,7 @@ export interface Location {
 export interface Device {
   id: string;
   name: string;
-  deviceType: "cctv" | "printer" | "camera";
+  deviceType: "cctv" | "printer" | "Computer";
   location: string; // ObjectId as string
   status: "active" | "inactive";
   school: string; // ObjectId as string

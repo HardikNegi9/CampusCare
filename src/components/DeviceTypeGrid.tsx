@@ -48,7 +48,7 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
   // Group devices by type and location
   const getLocationsForDeviceType = (deviceType: string) => {
     const relevantDevices = devices.filter(device => 
-      device.deviceType.toLowerCase() === deviceType.toLowerCase()
+      device.deviceType === deviceType
     );
     
     const locationIds = [...new Set(relevantDevices.map(device => device.location))];
@@ -58,11 +58,21 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
   const getDeviceCountForLocation = (locationId: string, deviceType: string) => {
     return devices.filter(device => 
       device.location === locationId && 
-      device.deviceType.toLowerCase() === deviceType.toLowerCase()
+      device.deviceType === deviceType
     ).length;
   };
 
   const deviceTypes = [
+    {
+      type: 'desktop',
+      icon: Monitor,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      darkBgColor: 'dark:bg-blue-950',
+      title: 'Computers Lab',
+      description: 'Desktop computers and workstations',
+      locations: getLocationsForDeviceType('desktop')
+    },
     {
       type: 'cctv',
       icon: Camera,
@@ -82,16 +92,6 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
       title: 'Printers',
       description: 'Printing devices',
       locations: getLocationsForDeviceType('printer')
-    },
-    {
-      type: 'Computer Lab',
-      icon: Monitor,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50',
-      darkBgColor: 'dark:bg-blue-950',
-      title: 'Cameras',
-      description: 'Computer devices',
-      locations: getLocationsForDeviceType('camera')
     }
   ];
 

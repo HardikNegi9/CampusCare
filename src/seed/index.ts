@@ -111,8 +111,8 @@ async function seedDatabase() {
 
     for (let i = 1; i <= 2; i++) {
       await Device.create({
-        name: `Camera-${i.toString().padStart(2, '0')}`,
-        deviceType: 'camera',
+        name: `Computer-${i.toString().padStart(2, '0')}`,
+        deviceType: 'Computer',
         location: artStudioLocation._id,
         status: i === 1 ? 'active' : 'inactive',
         school: artsSchool._id

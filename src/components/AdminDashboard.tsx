@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,21 +12,93 @@ import {
   Users, 
   Settings,
   Plus,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AdminDashboardProps {
   onNavigate: (view: 'regions' | 'schools' | 'locations' | 'devices' | 'logs' | 'users') => void;
   onRegularDashboard: () => void;
 }
 
+interface DashboardCounts {
+  regions: number;
+  schools: number;
+  locations: number;
+  devices: number;
+  users: number;
+}
+
 export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboardProps) {
+  const [counts, setCounts] = useState<DashboardCounts>({
+    regions: 0,
+    schools: 0,
+    locations: 0,
+    devices: 0,
+    users: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchCounts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch all counts in parallel
+      const [regionsRes, schoolsRes, locationsRes, devicesRes, usersRes] = await Promise.all([
+        fetch('/api/region', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/locations', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/devices', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+
+      const newCounts = { ...counts };
+
+      if (regionsRes.ok) {
+        const regionsData = await regionsRes.json();
+        newCounts.regions = regionsData.regions?.length || 0;
+      }
+
+      if (schoolsRes.ok) {
+        const schoolsData = await schoolsRes.json();
+        newCounts.schools = schoolsData.schools?.length || 0;
+      }
+
+      if (locationsRes.ok) {
+        const locationsData = await locationsRes.json();
+        newCounts.locations = locationsData.locations?.length || 0;
+      }
+
+      if (devicesRes.ok) {
+        const devicesData = await devicesRes.json();
+        newCounts.devices = devicesData.devices?.length || 0;
+      }
+
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        newCounts.users = usersData.users?.length || 0;
+      }
+
+      setCounts(newCounts);
+    } catch (error) {
+      console.error('Error fetching dashboard counts:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+
   const adminCards = [
     {
       title: 'Manage Regions',
       description: 'Add, edit, and delete geographical regions',
       icon: Building2,
-      count: '5 Regions',
+      count: loading ? 'Loading...' : `${counts.regions} Regions`,
       action: () => onNavigate('regions'),
       color: 'bg-blue-500'
     },
@@ -33,7 +106,7 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
       title: 'Manage Schools',
       description: 'Add, edit, and delete schools within regions',
       icon: School,
-      count: '12 Schools',
+      count: loading ? 'Loading...' : `${counts.schools} Schools`,
       action: () => onNavigate('schools'),
       color: 'bg-green-500'
     },
@@ -41,7 +114,7 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
       title: 'Manage Locations',
       description: 'Add, edit, and delete lab locations within schools',
       icon: MapPin,
-      count: '35 Locations',
+      count: loading ? 'Loading...' : `${counts.locations} Locations`,
       action: () => onNavigate('locations'),
       color: 'bg-purple-500'
     },
@@ -49,7 +122,7 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
       title: 'Manage Devices',
       description: 'Add, edit, and delete devices across all locations',
       icon: Laptop,
-      count: '150 Devices',
+      count: loading ? 'Loading...' : `${counts.devices} Devices`,
       action: () => onNavigate('devices'),
       color: 'bg-orange-500'
     },
@@ -65,7 +138,7 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
       title: 'Manage Users',
       description: 'Add, edit, and manage user accounts and permissions',
       icon: Users,
-      count: '25 Users',
+      count: loading ? 'Loading...' : `${counts.users} Users`,
       action: () => onNavigate('users'),
       color: 'bg-red-500'
     }
@@ -100,7 +173,10 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
                 <div className={`p-2 rounded-lg ${card.color} text-white w-fit`}>
                   <card.icon className="w-5 h-5" />
                 </div>
-                <Badge variant="secondary">{card.count}</Badge>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  {loading && index !== 4 && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {card.count}
+                </Badge>
               </div>
               <CardTitle className="text-lg">{card.title}</CardTitle>
               <CardDescription>{card.description}</CardDescription>

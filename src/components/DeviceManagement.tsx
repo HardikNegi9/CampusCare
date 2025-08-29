@@ -7,41 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Laptop,
-  Loader2,
-  Power,
-  PowerOff
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog,AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,} from '@/components/ui/alert-dialog';
+import { ArrowLeft, Plus, Edit, Trash2, Laptop,Loader2,Power,PowerOff} from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 
@@ -102,19 +71,9 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
   });
 
   const deviceTypes = [
-    'Desktop Computer',
-    'Laptop',
-    'Tablet',
-    'Projector',
-    'Printer',
-    'Scanner',
-    'Router',
-    'Switch',
-    'Server',
-    'Monitor',
-    'Webcam',
-    'Speaker System',
-    'Interactive Whiteboard'
+    'desktop',
+    'printer',
+    'cctv',
   ];
 
   // Fetch data
@@ -341,7 +300,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
                   {device.status}
                 </Badge>
               </div>
-              <CardDescription>{device.deviceType}</CardDescription>
+              <CardDescription>{device.deviceType.toUpperCase()}</CardDescription>
               <div className="space-y-1">
                 <Badge variant="outline" className="text-xs">
                   🏫 {device.schoolName || 'Unknown School'}
@@ -439,14 +398,14 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
               
               <div className="space-y-2">
                 <Label htmlFor="deviceType">Device Type *</Label>
-                <Select value={formData.deviceType} onValueChange={(value) => setFormData({ ...formData, deviceType: value })}>
+                <Select value={formData.deviceType} onValueChange={(value) => setFormData({ ...formData, deviceType: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select device type" />
                   </SelectTrigger>
                   <SelectContent>
                     {deviceTypes.map((type) => (
                       <SelectItem key={type} value={type}>
-                        {type}
+                        {type.toUpperCase()}
                       </SelectItem>
                     ))}
                   </SelectContent>
