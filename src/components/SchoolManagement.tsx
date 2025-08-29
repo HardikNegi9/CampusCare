@@ -1,46 +1,18 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  School,
-  Loader2 
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,} from '@/components/ui/alert-dialog';
+import { ArrowLeft, Plus, Edit, Trash2, School, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
+import { useApiCall } from '@/hooks/useApiCall';
 import { toast } from 'sonner';
 
 interface Region {
@@ -64,9 +36,9 @@ interface SchoolManagementProps {
 
 export function SchoolManagement({ onBack }: SchoolManagementProps) {
   const { user } = useAuth();
-  const [schools, setSchools] = useState<School[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { apiCall } = useApiCall();
+  const queryClient = useQueryClient();
+  
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -78,41 +50,93 @@ export function SchoolManagement({ onBack }: SchoolManagementProps) {
     region: ''
   });
 
-  // Fetch data
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Fetch regions
-      const regionsResponse = await fetch('/api/region', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (regionsResponse.ok) {
-        const regionsData = await regionsResponse.json();
-        setRegions(regionsData.regions || []);
-      }
+  // React Query hooks for data fetching
+  const { data: regions = [], isLoading: regionsLoading } = useQuery({
+    queryKey: ['regions'],
+    queryFn: async () => {
+      const response = await apiCall('/api/region');
+      if (!response.ok) throw new Error('Failed to fetch regions');
+      const data = await response.json();
+      return data.regions as Region[];
+    },
+  });
 
-      // Fetch schools - we'll need to create this endpoint
-      const schoolsResponse = await fetch('/api/schools', {
-        headers: { 'Authorization': `Bearer ${token}` }
+  const { data: schools = [], isLoading: schoolsLoading } = useQuery({
+    queryKey: ['schools'],
+    queryFn: async () => {
+      const response = await apiCall('/api/schools');
+      if (!response.ok) throw new Error('Failed to fetch schools');
+      const data = await response.json();
+      return data.schools as School[];
+    },
+  });
+
+  const loading = regionsLoading || schoolsLoading;
+
+  // Mutations
+  const createSchoolMutation = useMutation({
+    mutationFn: async (schoolData: typeof formData) => {
+      const response = await apiCall('/api/schools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schoolData)
       });
-      
-      if (schoolsResponse.ok) {
-        const schoolsData = await schoolsResponse.json();
-        setSchools(schoolsData.schools || []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
+      if (!response.ok) throw new Error('Failed to create school');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schools'] });
+      toast.success('School created successfully');
+      setShowAddDialog(false);
+      setFormData({ name: '', description: '', address: '', region: '' });
+    },
+    onError: (error) => {
+      console.error('Error creating school:', error);
+      toast.error('Failed to create school');
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const updateSchoolMutation = useMutation({
+    mutationFn: async (schoolData: typeof formData) => {
+      const response = await apiCall(`/api/schools/${selectedSchool?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schoolData)
+      });
+      if (!response.ok) throw new Error('Failed to update school');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schools'] });
+      toast.success('School updated successfully');
+      setShowEditDialog(false);
+      setFormData({ name: '', description: '', address: '', region: '' });
+    },
+    onError: (error) => {
+      console.error('Error updating school:', error);
+      toast.error('Failed to update school');
+    }
+  });
+
+  const deleteSchoolMutation = useMutation({
+    mutationFn: async (schoolId: string) => {
+      const response = await apiCall(`/api/schools/${schoolId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete school');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schools'] });
+      toast.success('School deleted successfully');
+      setShowDeleteDialog(false);
+      setSelectedSchool(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting school:', error);
+      toast.error('Failed to delete school');
+    }
+  });
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,58 +147,17 @@ export function SchoolManagement({ onBack }: SchoolManagementProps) {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
-      const url = showEditDialog ? `/api/schools/${selectedSchool?.id}` : '/api/schools';
-      const method = showEditDialog ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${showEditDialog ? 'update' : 'create'} school`);
-      }
-
-      toast.success(`School ${showEditDialog ? 'updated' : 'created'} successfully`);
-      setShowAddDialog(false);
-      setShowEditDialog(false);
-      setFormData({ name: '', description: '', address: '', region: '' });
-      fetchData();
-    } catch (error) {
-      console.error('Error saving school:', error);
-      toast.error(`Failed to ${showEditDialog ? 'update' : 'create'} school`);
+    if (showEditDialog) {
+      updateSchoolMutation.mutate(formData);
+    } else {
+      createSchoolMutation.mutate(formData);
     }
   };
 
   // Handle delete
   const handleDelete = async () => {
     if (!selectedSchool) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/schools/${selectedSchool.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete school');
-      }
-
-      toast.success('School deleted successfully');
-      setShowDeleteDialog(false);
-      setSelectedSchool(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting school:', error);
-      toast.error('Failed to delete school');
-    }
+    deleteSchoolMutation.mutate(selectedSchool.id);
   };
 
   // Open edit dialog
@@ -369,7 +352,10 @@ export function SchoolManagement({ onBack }: SchoolManagementProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={createSchoolMutation.isPending || updateSchoolMutation.isPending}>
+                {(createSchoolMutation.isPending || updateSchoolMutation.isPending) && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
                 {showEditDialog ? 'Update School' : 'Create School'}
               </Button>
             </DialogFooter>
@@ -389,7 +375,14 @@ export function SchoolManagement({ onBack }: SchoolManagementProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteSchoolMutation.isPending}
+            >
+              {deleteSchoolMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

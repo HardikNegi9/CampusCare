@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog,AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Plus, Edit, Trash2, Laptop,Loader2,Power,PowerOff} from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
+import { useApiCall } from '@/hooks/useApiCall';
 import { toast } from 'sonner';
 
 interface Region {
@@ -48,11 +50,9 @@ interface DeviceManagementProps {
 
 export function DeviceManagement({ onBack }: DeviceManagementProps) {
   const { user } = useAuth();
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { apiCall } = useApiCall();
+  const queryClient = useQueryClient();
+  
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -76,49 +76,134 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
     'cctv',
   ];
 
-  // Fetch data
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Fetch all data in parallel
-      const [devicesRes, regionsRes, schoolsRes, locationsRes] = await Promise.all([
-        fetch('/api/devices', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/region', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/schools', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/locations', { headers: { 'Authorization': `Bearer ${token}` } })
-      ]);
+  // React Query hooks for data fetching
+  const { data: devices = [], isLoading: devicesLoading } = useQuery({
+    queryKey: ['devices'],
+    queryFn: async () => {
+      const response = await apiCall('/api/devices');
+      if (!response.ok) throw new Error('Failed to fetch devices');
+      const data = await response.json();
+      return data.devices as Device[];
+    },
+  });
 
-      if (devicesRes.ok) {
-        const devicesData = await devicesRes.json();
-        setDevices(devicesData.devices || []);
-      }
+  const { data: regions = [], isLoading: regionsLoading } = useQuery({
+    queryKey: ['regions'],
+    queryFn: async () => {
+      const response = await apiCall('/api/region');
+      if (!response.ok) throw new Error('Failed to fetch regions');
+      const data = await response.json();
+      return data.regions as Region[];
+    },
+  });
 
-      if (regionsRes.ok) {
-        const regionsData = await regionsRes.json();
-        setRegions(regionsData.regions || []);
-      }
+  const { data: schools = [], isLoading: schoolsLoading } = useQuery({
+    queryKey: ['schools'],
+    queryFn: async () => {
+      const response = await apiCall('/api/schools');
+      if (!response.ok) throw new Error('Failed to fetch schools');
+      const data = await response.json();
+      return data.schools as School[];
+    },
+  });
 
-      if (schoolsRes.ok) {
-        const schoolsData = await schoolsRes.json();
-        setSchools(schoolsData.schools || []);
-      }
+  const { data: locations = [], isLoading: locationsLoading } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => {
+      const response = await apiCall('/api/locations');
+      if (!response.ok) throw new Error('Failed to fetch locations');
+      const data = await response.json();
+      return data.locations as Location[];
+    },
+  });
 
-      if (locationsRes.ok) {
-        const locationsData = await locationsRes.json();
-        setLocations(locationsData.locations || []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
+  const loading = devicesLoading || regionsLoading || schoolsLoading || locationsLoading;
+
+  // Mutations
+  const createDeviceMutation = useMutation({
+    mutationFn: async (deviceData: typeof formData) => {
+      const response = await apiCall('/api/devices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deviceData)
+      });
+      if (!response.ok) throw new Error('Failed to create device');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      toast.success('Device created successfully');
+      setShowAddDialog(false);
+      setFormData({ name: '', deviceType: '', location: '', school: '', status: 'active' });
+    },
+    onError: (error) => {
+      console.error('Error creating device:', error);
+      toast.error('Failed to create device');
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const updateDeviceMutation = useMutation({
+    mutationFn: async (deviceData: typeof formData) => {
+      const response = await apiCall(`/api/devices/${selectedDevice?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deviceData)
+      });
+      if (!response.ok) throw new Error('Failed to update device');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      toast.success('Device updated successfully');
+      setShowEditDialog(false);
+      setFormData({ name: '', deviceType: '', location: '', school: '', status: 'active' });
+    },
+    onError: (error) => {
+      console.error('Error updating device:', error);
+      toast.error('Failed to update device');
+    }
+  });
+
+  const deleteDeviceMutation = useMutation({
+    mutationFn: async (deviceId: string) => {
+      const response = await apiCall(`/api/devices/${deviceId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete device');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      toast.success('Device deleted successfully');
+      setShowDeleteDialog(false);
+      setSelectedDevice(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting device:', error);
+      toast.error('Failed to delete device');
+    }
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ deviceId, status, reason }: { deviceId: string; status: 'active' | 'inactive'; reason?: string }) => {
+      const response = await apiCall(`/api/devices/${deviceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, deactivationReason: reason })
+      });
+      if (!response.ok) throw new Error('Failed to toggle device status');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      toast.success('Device status updated successfully');
+      setDeactivationDialog({ isOpen: false, device: null, reason: '' });
+    },
+    onError: (error) => {
+      console.error('Error toggling device status:', error);
+      toast.error('Failed to update device status');
+    }
+  });
 
   // Filter locations by selected school
   const filteredLocations = locations.filter(loc => loc.school === formData.school);
@@ -132,58 +217,17 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
-      const url = showEditDialog ? `/api/devices/${selectedDevice?.id}` : '/api/devices';
-      const method = showEditDialog ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${showEditDialog ? 'update' : 'create'} device`);
-      }
-
-      toast.success(`Device ${showEditDialog ? 'updated' : 'created'} successfully`);
-      setShowAddDialog(false);
-      setShowEditDialog(false);
-      setFormData({ name: '', deviceType: '', location: '', school: '', status: 'active' });
-      fetchData();
-    } catch (error) {
-      console.error('Error saving device:', error);
-      toast.error(`Failed to ${showEditDialog ? 'update' : 'create'} device`);
+    if (showEditDialog) {
+      updateDeviceMutation.mutate(formData);
+    } else {
+      createDeviceMutation.mutate(formData);
     }
   };
 
   // Handle delete
   const handleDelete = async () => {
     if (!selectedDevice) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/devices/${selectedDevice.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete device');
-      }
-
-      toast.success('Device deleted successfully');
-      setShowDeleteDialog(false);
-      setSelectedDevice(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting device:', error);
-      toast.error('Failed to delete device');
-    }
+    deleteDeviceMutation.mutate(selectedDevice.id);
   };
 
   // Toggle device status
@@ -206,36 +250,20 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
     }
 
     // If activating, proceed directly
-    await performStatusUpdate(device, newStatus);
+    toggleStatusMutation.mutate({
+      deviceId: device.id,
+      status: newStatus
+    });
   };
 
-  const performStatusUpdate = async (device: Device, newStatus: 'active' | 'inactive', deactivationReason?: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`/api/devices/${device.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          status: newStatus,
-          deactivationReason 
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update device status');
-      }
-
-      toast.success(`Device ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
-      fetchData();
-    } catch (error) {
-      console.error('Error toggling device status:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update device status');
-    }
+  const handleDeactivation = () => {
+    if (!deactivationDialog.device) return;
+    
+    toggleStatusMutation.mutate({
+      deviceId: deactivationDialog.device.id,
+      status: 'inactive',
+      reason: deactivationDialog.reason
+    });
   };
 
   // Open edit dialog
@@ -469,7 +497,10 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={createDeviceMutation.isPending || updateDeviceMutation.isPending}>
+                {(createDeviceMutation.isPending || updateDeviceMutation.isPending) && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
                 {showEditDialog ? 'Update Device' : 'Create Device'}
               </Button>
             </DialogFooter>
@@ -488,7 +519,14 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteDeviceMutation.isPending}
+            >
+              {deleteDeviceMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -528,20 +566,21 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               type="button"
-              onClick={async () => {
+              onClick={() => {
                 if (!deactivationDialog.reason.trim()) {
                   toast.error('Please provide a reason for deactivation');
                   return;
                 }
-                if (deactivationDialog.device) {
-                  await performStatusUpdate(deactivationDialog.device, 'inactive', deactivationDialog.reason);
-                  setDeactivationDialog({ isOpen: false, device: null, reason: '' });
-                }
+                handleDeactivation();
               }}
               className="bg-red-600 hover:bg-red-700"
+              disabled={toggleStatusMutation.isPending}
             >
+              {toggleStatusMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Deactivate Device
             </Button>
           </DialogFooter>

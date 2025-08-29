@@ -4,17 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, 
-  School, 
-  MapPin, 
-  Laptop, 
-  Users, 
-  Settings,
-  Plus,
-  FileText,
-  Loader2
-} from 'lucide-react';
+import { Building2, School, MapPin, Laptop, Users, Settings, Plus, FileText, Loader2} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AdminDashboardProps {
@@ -30,6 +20,11 @@ interface DashboardCounts {
   users: number;
 }
 
+interface CachedData {
+  counts: DashboardCounts;
+  timestamp: number;
+}
+
 export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboardProps) {
   const [counts, setCounts] = useState<DashboardCounts>({
     regions: 0,
@@ -40,8 +35,52 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchCounts = async () => {
+  const CACHE_KEY = 'admin_dashboard_counts';
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+  const getCachedData = (): CachedData | null => {
     try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const parsedData = JSON.parse(cached) as CachedData;
+        const now = Date.now();
+        
+        // Check if cache is still valid (within 5 minutes)
+        if (now - parsedData.timestamp < CACHE_DURATION) {
+          return parsedData;
+        }
+      }
+    } catch (error) {
+      console.error('Error reading cache:', error);
+    }
+    return null;
+  };
+
+  const setCachedData = (counts: DashboardCounts) => {
+    try {
+      const dataToCache: CachedData = {
+        counts,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(dataToCache));
+    } catch (error) {
+      console.error('Error setting cache:', error);
+    }
+  };
+
+  const fetchCounts = async (useCache = true) => {
+    // Check cache first
+    if (useCache) {
+      const cachedData = getCachedData();
+      if (cachedData) {
+        setCounts(cachedData.counts);
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       
       // Fetch all counts in parallel
@@ -53,7 +92,13 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
         fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
-      const newCounts = { ...counts };
+      const newCounts: DashboardCounts = {
+        regions: 0,
+        schools: 0,
+        locations: 0,
+        devices: 0,
+        users: 0
+      };
 
       if (regionsRes.ok) {
         const regionsData = await regionsRes.json();
@@ -81,6 +126,7 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
       }
 
       setCounts(newCounts);
+      setCachedData(newCounts); // Cache the new data
     } catch (error) {
       console.error('Error fetching dashboard counts:', error);
       toast.error('Failed to load dashboard data');
@@ -89,8 +135,13 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
     }
   };
 
+  // Function to manually refresh data (bypass cache)
+  const refreshData = () => {
+    fetchCounts(false);
+  };
+
   useEffect(() => {
-    fetchCounts();
+    fetchCounts(true); // Use cache on initial load
   }, []);
 
   const adminCards = [
@@ -154,6 +205,10 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={refreshData} variant="ghost" size="sm">
+            <Loader2 className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Button onClick={onRegularDashboard} variant="outline">
             <Settings className="w-4 h-4 mr-2" />
             Regular Dashboard

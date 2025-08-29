@@ -1,39 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Building2,
-  Loader2 
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,} from '@/components/ui/alert-dialog';
+import { ArrowLeft, Plus, Edit, Trash2, Building2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
+import { useApiCall } from '@/hooks/useApiCall';
 import { toast } from 'sonner';
 
 interface Region {
@@ -49,8 +28,9 @@ interface RegionManagementProps {
 
 export function RegionManagement({ onBack }: RegionManagementProps) {
   const { user } = useAuth();
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { apiCall } = useApiCall();
+  const queryClient = useQueryClient();
+  
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -60,33 +40,81 @@ export function RegionManagement({ onBack }: RegionManagementProps) {
     description: ''
   });
 
-  // Fetch regions
-  const fetchRegions = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/region', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch regions');
-      }
-
+  // React Query hook for fetching regions
+  const { data: regions = [], isLoading: loading } = useQuery({
+    queryKey: ['regions'],
+    queryFn: async () => {
+      const response = await apiCall('/api/region');
+      if (!response.ok) throw new Error('Failed to fetch regions');
       const data = await response.json();
-      setRegions(data.regions || []);
-    } catch (error) {
-      console.error('Error fetching regions:', error);
-      toast.error('Failed to load regions');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data.regions as Region[];
+    },
+  });
 
-  useEffect(() => {
-    fetchRegions();
-  }, []);
+  // Mutations
+  const createRegionMutation = useMutation({
+    mutationFn: async (regionData: typeof formData) => {
+      const response = await apiCall('/api/region', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(regionData)
+      });
+      if (!response.ok) throw new Error('Failed to create region');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
+      toast.success('Region created successfully');
+      setShowAddDialog(false);
+      setFormData({ name: '', description: '' });
+    },
+    onError: (error) => {
+      console.error('Error creating region:', error);
+      toast.error('Failed to create region');
+    }
+  });
+
+  const updateRegionMutation = useMutation({
+    mutationFn: async (regionData: typeof formData) => {
+      const response = await apiCall(`/api/region/${selectedRegion?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(regionData)
+      });
+      if (!response.ok) throw new Error('Failed to update region');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
+      toast.success('Region updated successfully');
+      setShowEditDialog(false);
+      setFormData({ name: '', description: '' });
+    },
+    onError: (error) => {
+      console.error('Error updating region:', error);
+      toast.error('Failed to update region');
+    }
+  });
+
+  const deleteRegionMutation = useMutation({
+    mutationFn: async (regionId: string) => {
+      const response = await apiCall(`/api/region/${regionId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete region');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
+      toast.success('Region deleted successfully');
+      setShowDeleteDialog(false);
+      setSelectedRegion(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting region:', error);
+      toast.error('Failed to delete region');
+    }
+  });
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,60 +125,17 @@ export function RegionManagement({ onBack }: RegionManagementProps) {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
-      const url = showEditDialog ? `/api/region/${selectedRegion?.id}` : '/api/region';
-      const method = showEditDialog ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${showEditDialog ? 'update' : 'create'} region`);
-      }
-
-      toast.success(`Region ${showEditDialog ? 'updated' : 'created'} successfully`);
-      setShowAddDialog(false);
-      setShowEditDialog(false);
-      setFormData({ name: '', description: '' });
-      fetchRegions();
-    } catch (error) {
-      console.error('Error saving region:', error);
-      toast.error(`Failed to ${showEditDialog ? 'update' : 'create'} region`);
+    if (showEditDialog) {
+      updateRegionMutation.mutate(formData);
+    } else {
+      createRegionMutation.mutate(formData);
     }
   };
 
   // Handle delete
   const handleDelete = async () => {
     if (!selectedRegion) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/region/${selectedRegion.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete region');
-      }
-
-      toast.success('Region deleted successfully');
-      setShowDeleteDialog(false);
-      setSelectedRegion(null);
-      fetchRegions();
-    } catch (error) {
-      console.error('Error deleting region:', error);
-      toast.error('Failed to delete region');
-    }
+    deleteRegionMutation.mutate(selectedRegion.id);
   };
 
   // Open edit dialog
@@ -308,7 +293,10 @@ export function RegionManagement({ onBack }: RegionManagementProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={createRegionMutation.isPending || updateRegionMutation.isPending}>
+                {(createRegionMutation.isPending || updateRegionMutation.isPending) && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
                 {showEditDialog ? 'Update Region' : 'Create Region'}
               </Button>
             </DialogFooter>
@@ -328,7 +316,14 @@ export function RegionManagement({ onBack }: RegionManagementProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteRegionMutation.isPending}
+            >
+              {deleteRegionMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

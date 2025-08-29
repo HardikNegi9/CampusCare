@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Monitor, Camera, Printer, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Monitor, Camera, Printer, MapPin, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { Alert, AlertDescription } from './ui/alert';
 import { School, Location, Device } from '../types';
 import { useApiCall } from '@/hooks/useApiCall';
 

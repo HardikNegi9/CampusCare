@@ -70,24 +70,33 @@ export async function GET(request: NextRequest) {
       DeviceLog.countDocuments(filter)
     ]);
 
-    // Transform the data
+    // Transform the data with null checks
     const transformedLogs = logs.map((log: any) => ({
       id: log._id.toString(),
-      device: {
+      device: log.device ? {
         id: log.device._id.toString(),
         name: log.device.name,
         deviceType: log.device.deviceType
+      } : {
+        id: 'deleted',
+        name: 'Deleted Device',
+        deviceType: 'unknown'
       },
       action: log.action,
       description: log.description,
       deactivationReason: log.deactivationReason,
       oldValues: log.oldValues,
       newValues: log.newValues,
-      performedBy: {
+      performedBy: log.performedBy ? {
         id: log.performedBy._id.toString(),
         username: log.performedBy.username,
         email: log.performedBy.email,
         role: log.performedBy.role
+      } : {
+        id: 'unknown',
+        username: 'Unknown User',
+        email: 'unknown@example.com',
+        role: 'unknown'
       },
       timestamp: log.timestamp,
       ipAddress: log.ipAddress,
