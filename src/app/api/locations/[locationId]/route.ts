@@ -40,8 +40,8 @@ export async function GET(
       id: (location as any)._id.toString(),
       name: (location as any).name,
       description: (location as any).description,
-      school: (location as any).school._id.toString(),
-      schoolName: (location as any).school.name
+      school: (location as any).school?._id?.toString() || '',
+      schoolName: (location as any).school?.name || 'Unknown School'
     };
 
     return NextResponse.json({
@@ -114,8 +114,8 @@ export async function PUT(
       id: (updatedLocation as any)._id.toString(),
       name: (updatedLocation as any).name,
       description: (updatedLocation as any).description,
-      school: (updatedLocation as any).school._id.toString(),
-      schoolName: (updatedLocation as any).school.name
+      school: (updatedLocation as any).school?._id?.toString() || '',
+      schoolName: (updatedLocation as any).school?.name || 'Unknown School'
     };
 
     return NextResponse.json({

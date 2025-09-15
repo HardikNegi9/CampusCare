@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
       id: location._id.toString(),
       name: location.name,
       description: location.description,
-      school: location.school._id.toString(),
-      schoolName: location.school.name
+      school: location.school?._id?.toString() || '',
+      schoolName: location.school?.name || 'Unknown School'
     }));
 
     return NextResponse.json({
@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
       id: (createdLocation as any)._id.toString(),
       name: (createdLocation as any).name,
       description: (createdLocation as any).description,
-      school: (createdLocation as any).school._id.toString(),
-      schoolName: (createdLocation as any).school.name
+      school: (createdLocation as any).school?._id?.toString() || '',
+      schoolName: (createdLocation as any).school?.name || 'Unknown School'
     };
 
     return NextResponse.json({
