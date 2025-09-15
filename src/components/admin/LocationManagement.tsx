@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApiCall } from '@/hooks/useApiCall';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,6 +51,7 @@ interface LocationManagementProps {
 }
 
 export default function LocationManagement({ onBack }: LocationManagementProps) {
+  const { apiCall } = useApiCall();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -65,14 +67,10 @@ export default function LocationManagement({ onBack }: LocationManagementProps) 
   const { data: locationsData, isLoading: locationsLoading } = useQuery({
     queryKey: ['locations'],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/locations', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiCall('/api/locations');
       if (!response.ok) throw new Error('Failed to fetch locations');
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data.locations) ? data.locations : [];
     }
   });
 
@@ -80,26 +78,20 @@ export default function LocationManagement({ onBack }: LocationManagementProps) 
   const { data: schoolsData } = useQuery({
     queryKey: ['schools'],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/schools', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiCall('/api/schools');
       if (!response.ok) throw new Error('Failed to fetch schools');
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data.schools) ? data.schools : [];
     }
   });
 
   // Create location mutation
   const createLocationMutation = useMutation({
     mutationFn: async (data: { name: string; description: string; school: string }) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/locations', {
+      const response = await apiCall('/api/locations', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
       });
@@ -120,12 +112,10 @@ export default function LocationManagement({ onBack }: LocationManagementProps) 
   // Update location mutation
   const updateLocationMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { name: string; description: string; school: string } }) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/locations/${id}`, {
+      const response = await apiCall(`/api/locations/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
       });
@@ -147,12 +137,8 @@ export default function LocationManagement({ onBack }: LocationManagementProps) 
   // Delete location mutation
   const deleteLocationMutation = useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/locations/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await apiCall(`/api/locations/${id}`, {
+        method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete location');
       return response.json();
@@ -208,8 +194,8 @@ export default function LocationManagement({ onBack }: LocationManagementProps) 
     setEditingLocation(null);
   };
 
-  const locations: Location[] = locationsData?.locations || [];
-  const schools: School[] = schoolsData?.schools || [];
+  const locations: Location[] = Array.isArray(locationsData) ? locationsData : [];
+  const schools: School[] = Array.isArray(schoolsData) ? schoolsData : [];
 
   return (
     <div className="space-y-6">

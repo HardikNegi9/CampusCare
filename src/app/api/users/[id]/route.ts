@@ -137,7 +137,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ message: 'Access denied. Admin role required.' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Prevent admin from deleting themselves
     if (currentUser._id.toString() === id) {

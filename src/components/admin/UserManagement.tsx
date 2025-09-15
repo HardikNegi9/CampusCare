@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit2, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { useApiCall } from '@/hooks/useApiCall';
 
 interface User {
   id: string;
@@ -53,6 +54,7 @@ interface UserManagementProps {
 }
 
 export default function UserManagement({ onBack }: UserManagementProps) {
+  const { apiCall } = useApiCall();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -66,16 +68,27 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
   const queryClient = useQueryClient();
 
+  // Safe date formatter function
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      return date.toLocaleDateString();
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   // Fetch users
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiCall('/api/users');
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
       return data.users || [];
@@ -86,12 +99,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   const { data: schools } = useQuery({
     queryKey: ['schools'],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/schools', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiCall('/api/schools');
       if (!response.ok) throw new Error('Failed to fetch schools');
       const data = await response.json();
       return data.schools || [];
@@ -101,14 +109,9 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: typeof formData) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/users', {
+      const response = await apiCall('/api/users', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(userData),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -130,13 +133,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/${id}`, {
+      const response = await apiCall(`/api/users/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(data)
       });
       if (!response.ok) {
@@ -160,12 +158,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/${id}`, {
+      const response = await apiCall(`/api/users/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
       if (!response.ok) {
         const error = await response.json();
@@ -402,7 +396,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                     </TableCell>
                     <TableCell>{user.schoolName || 'None'}</TableCell>
                     <TableCell>
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {formatDate(user.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

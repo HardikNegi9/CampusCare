@@ -76,6 +76,22 @@ export default function DeviceLogsManagement() {
   const [selectedLog, setSelectedLog] = useState<DeviceLog | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
+  // Safe date formatter function
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      return date.toLocaleString();
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   // Fetch device logs
   const { data: logsData, isLoading, refetch } = useQuery({
     queryKey: ['device-logs', filters],
@@ -144,7 +160,7 @@ export default function DeviceLogsManagement() {
       const csvContent = [
         ['Timestamp', 'Device', 'Action', 'Description', 'Deactivation Reason', 'Performed By', 'IP Address'].join(','),
         ...data.logs.map((log: DeviceLog) => [
-          new Date(log.timestamp).toLocaleString(),
+          formatDate(log.timestamp),
           `"${log.device.name}"`,
           log.action,
           `"${log.description}"`,
@@ -270,7 +286,7 @@ export default function DeviceLogsManagement() {
                 {logs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-mono text-sm">
-                      {new Date(log.timestamp).toLocaleString()}
+                      {formatDate(log.timestamp)}
                     </TableCell>
                     <TableCell>
                       <div>
@@ -376,7 +392,7 @@ export default function DeviceLogsManagement() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Timestamp</Label>
-                  <p className="text-sm font-mono">{new Date(selectedLog.timestamp).toLocaleString()}</p>
+                  <p className="text-sm font-mono">{formatDate(selectedLog.timestamp)}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Performed By</Label>

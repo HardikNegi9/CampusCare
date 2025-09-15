@@ -16,6 +16,8 @@ const userSchema = new Schema<IUser>({
   passwordHash: { type: String, required: true },
   role: { type: String, enum: ["admin", "engineer", "faculty"], required: true },
   affiliatedSchool: { type: Schema.Types.ObjectId, ref: "School" }, // links to a school
+}, {
+  timestamps: true // Automatically adds createdAt and updatedAt
 });
 
 // 3️⃣ Export model so we can use it in APIs

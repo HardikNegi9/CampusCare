@@ -24,7 +24,7 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
         throw new Error('Failed to fetch locations');
       }
       const data = await response.json();
-      return data.locations as Location[];
+      return Array.isArray(data.locations) ? data.locations as Location[] : [];
     },
   });
 
@@ -37,7 +37,7 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
         throw new Error('Failed to fetch devices');
       }
       const data = await response.json();
-      return data.devices as Device[];
+      return Array.isArray(data.devices) ? data.devices as Device[] : [];
     },
   });
 
@@ -45,15 +45,21 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
 
   // Group devices by type and location
   const getLocationsForDeviceType = (deviceType: string) => {
+    if (!Array.isArray(devices)) return [];
+    
     const relevantDevices = devices.filter(device => 
       device.deviceType === deviceType
     );
     
     const locationIds = [...new Set(relevantDevices.map(device => device.location))];
+    if (!Array.isArray(locations)) return [];
+    
     return locations.filter(location => locationIds.includes(location.id));
   };
 
   const getDeviceCountForLocation = (locationId: string, deviceType: string) => {
+    if (!Array.isArray(devices)) return 0;
+    
     return devices.filter(device => 
       device.location === locationId && 
       device.deviceType === deviceType

@@ -84,7 +84,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
       const response = await apiCall('/api/devices');
       if (!response.ok) throw new Error('Failed to fetch devices');
       const data = await response.json();
-      return data.devices as Device[];
+      return Array.isArray(data.devices) ? data.devices as Device[] : [];
     },
   });
 
@@ -94,7 +94,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
       const response = await apiCall('/api/region');
       if (!response.ok) throw new Error('Failed to fetch regions');
       const data = await response.json();
-      return data.regions as Region[];
+      return Array.isArray(data.regions) ? data.regions as Region[] : [];
     },
   });
 
@@ -104,7 +104,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
       const response = await apiCall('/api/schools');
       if (!response.ok) throw new Error('Failed to fetch schools');
       const data = await response.json();
-      return data.schools as School[];
+      return Array.isArray(data.schools) ? data.schools as School[] : [];
     },
   });
 
@@ -114,7 +114,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
       const response = await apiCall('/api/locations');
       if (!response.ok) throw new Error('Failed to fetch locations');
       const data = await response.json();
-      return data.locations as Location[];
+      return Array.isArray(data.locations) ? data.locations as Location[] : [];
     },
   });
 
@@ -207,7 +207,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
   });
 
   // Filter locations by selected school
-  const filteredLocations = locations.filter(loc => loc.school === formData.school);
+  const filteredLocations = Array.isArray(locations) ? locations.filter(loc => loc.school === formData.school) : [];
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
