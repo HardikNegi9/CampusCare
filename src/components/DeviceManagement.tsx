@@ -74,6 +74,7 @@ export function DeviceManagement({ onBack }: DeviceManagementProps) {
     'desktop',
     'printer',
     'cctv',
+    'server',
   ];
 
   // React Query hooks for data fetching

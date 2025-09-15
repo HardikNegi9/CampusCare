@@ -1,4 +1,4 @@
-import { ArrowLeft, Monitor, Camera, Printer, AlertTriangle, CheckCircle2, Power } from 'lucide-react';
+import { ArrowLeft, Monitor, Camera, Printer, Server, AlertTriangle, CheckCircle2, Power } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -171,6 +171,8 @@ export const TopViewLab = ({ lab, onBack }: TopViewLabProps) => {
         return <Camera className="h-4 w-4" />;
       case 'printer':
         return <Printer className="h-4 w-4" />;
+      case 'server':
+        return <Server className="h-4 w-4" />;
       default:
         return <Monitor className="h-4 w-4" />;
     }

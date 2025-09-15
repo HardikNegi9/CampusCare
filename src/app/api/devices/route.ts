@@ -46,24 +46,24 @@ export async function GET(request: NextRequest) {
       id: device._id.toString(),
       name: device.name,
       deviceType: device.deviceType,
-      location: device.location._id.toString(),
-      locationName: device.location.name,
+      location: device.location?._id?.toString() || '',
+      locationName: device.location?.name || 'Unknown Location',
       status: device.status,
-      school: device.school._id.toString(),
-      schoolName: device.school.name,
+      school: device.school?._id?.toString() || '',
+      schoolName: device.school?.name || 'Unknown School',
       serialNumber: device.serialNumber,
       purchaseDate: device.purchaseDate,
       warrantyExpiry: device.warrantyExpiry,
       locationData: device.location ? {
-        id: device.location._id.toString(),
-        name: device.location.name,
+        id: device.location._id?.toString() || '',
+        name: device.location.name || 'Unknown Location',
         floor: device.location.floor,
         building: device.location.building,
         school: device.location.school?.toString()
       } : undefined,
       schoolData: device.school ? {
-        id: device.school._id.toString(),
-        name: device.school.name,
+        id: device.school._id?.toString() || '',
+        name: device.school.name || 'Unknown School',
         address: device.school.address,
         region: device.school.region?.toString()
       } : undefined
@@ -161,11 +161,11 @@ export async function POST(request: NextRequest) {
       id: (createdDevice as any)._id.toString(),
       name: (createdDevice as any).name,
       deviceType: (createdDevice as any).deviceType,
-      location: (createdDevice as any).location._id.toString(),
-      locationName: (createdDevice as any).location.name,
+      location: (createdDevice as any).location?._id?.toString() || '',
+      locationName: (createdDevice as any).location?.name || 'Unknown Location',
       status: (createdDevice as any).status,
-      school: (createdDevice as any).school._id.toString(),
-      schoolName: (createdDevice as any).school.name
+      school: (createdDevice as any).school?._id?.toString() || '',
+      schoolName: (createdDevice as any).school?.name || 'Unknown School'
     };
 
     return NextResponse.json({

@@ -162,7 +162,7 @@ export function AdminDashboard({ onNavigate, onRegularDashboard }: AdminDashboar
       color: 'bg-green-500'
     },
     {
-      title: 'Manage Locations',
+      title: 'Manage Labs',
       description: 'Add, edit, and delete lab locations within schools',
       icon: MapPin,
       count: loading ? 'Loading...' : `${counts.locations} Locations`,

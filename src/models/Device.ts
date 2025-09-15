@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 // 1️⃣ Define what a Device looks like (TypeScript interface)
 export interface IDevice extends Document {
   name: string; // e.g., CCTV-01, Printer-02
-  deviceType: "cctv" | "printer" | "desktop";
+  deviceType: "cctv" | "printer" | "desktop" | "server";
   location: mongoose.Types.ObjectId; // Reference to Location
   status: "active" | "inactive";
   school: mongoose.Types.ObjectId; // The school where the device belongs
@@ -17,7 +17,7 @@ const deviceSchema = new Schema<IDevice>({
   name: { type: String, required: true },
   deviceType: {
     type: String,
-    enum: ["cctv", "printer", "desktop"],
+    enum: ["cctv", "printer", "desktop", "server"],
     required: true,
   },
   location: { type: Schema.Types.ObjectId, ref: "Location", required: true },

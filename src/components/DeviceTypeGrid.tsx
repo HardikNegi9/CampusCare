@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Monitor, Camera, Printer, MapPin, Loader2 } from 'lucide-react';
+import { ArrowLeft, Monitor, Camera, Printer, Server, MapPin, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
@@ -90,6 +90,16 @@ export const DeviceTypeGrid = ({ school, onBack, onLabSelect }: DeviceTypeGridPr
       title: 'Printers',
       description: 'Printing devices',
       locations: getLocationsForDeviceType('printer')
+    },
+    {
+      type: 'server',
+      icon: Server,
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-50',
+      darkBgColor: 'dark:bg-orange-950',
+      title: 'Servers',
+      description: 'Server infrastructure',
+      locations: getLocationsForDeviceType('server')
     }
   ];
 
